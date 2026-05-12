@@ -4,75 +4,12 @@ import { OrbitControls, Grid, PerspectiveCamera } from "@react-three/drei";
 import ROSLIB from "roslib";
 import * as THREE from "three";
 
-const LaserScanPoints = ({ ros, topicName = "/scan" }) => {
-  const [points, setPoints] = useState([]);
-
-  useEffect(() => {
-    if (!ros) return;
-
-    const scanTopic = new ROSLIB.Topic({
-      ros: ros,
-      name: topicName,
-      messageType: "sensor_msgs/LaserScan",
-    });
-
-    scanTopic.subscribe((message) => {
-      const newPoints = [];
-      const { ranges, angle_min, angle_increment } = message;
-
-      ranges.forEach((range, i) => {
-        if (range > 0 && range < 100) {
-          const angle = angle_min + i * angle_increment;
-          const x = range * Math.cos(angle);
-          const y = range * Math.sin(angle);
-          newPoints.push([x, y, 0]);
-        }
-      });
-
-      setPoints(newPoints);
-    });
-
-    return () => {
-      scanTopic.unsubscribe();
-    };
-  }, [ros, topicName]);
-
-  if (points.length === 0) return null;
-
-  return (
-    <points>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={points.length}
-          array={new Float32Array(points.flat())}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial size={0.05} color="red" />
-    </points>
-  );
-};
-
 const RobotModel = ({ ros }) => {
   const [jointStates, setJointStates] = useState({});
-  const [, setRobotDescription] = useState(null);
 
   useEffect(() => {
     if (!ros) return;
 
-    // ロボットのURDFを取得
-    const robotDescriptionTopic = new ROSLIB.Topic({
-      ros: ros,
-      name: "/robot_description",
-      messageType: "std_msgs/String",
-    });
-
-    robotDescriptionTopic.subscribe((message) => {
-      setRobotDescription(message.data);
-    });
-
-    // 関節状態を取得
     const jointStatesTopic = new ROSLIB.Topic({
       ros: ros,
       name: "/joint_states",
@@ -88,7 +25,6 @@ const RobotModel = ({ ros }) => {
     });
 
     return () => {
-      robotDescriptionTopic.unsubscribe();
       jointStatesTopic.unsubscribe();
     };
   }, [ros]);
@@ -236,9 +172,6 @@ const Scene3D = ({ ros }) => {
 
         {/* ロボットモデル */}
         {ros && <RobotModel ros={ros} />}
-
-        {/* レーザースキャンデータ */}
-        {ros && <LaserScanPoints ros={ros} />}
       </Canvas>
     </div>
   );
