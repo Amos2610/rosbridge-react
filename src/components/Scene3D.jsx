@@ -10,6 +10,7 @@ const RobotModel = ({ ros }) => {
   useEffect(() => {
     if (!ros) return;
 
+    // 関節状態を取得
     const jointStatesTopic = new ROSLIB.Topic({
       ros: ros,
       name: "/joint_states",
@@ -41,67 +42,67 @@ const RobotModel = ({ ros }) => {
     };
 
     return (
-      <group>
+      <group rotation={[-Math.PI / 2, 0, 0]}>
         {/* Base */}
-        <mesh position={[0, 0, 0.1]}>
+        <mesh position={[0, 0, 0.1335]}>
           <cylinderGeometry args={[0.1, 0.1, 0.2]} />
           <meshStandardMaterial color="black" />
         </mesh>
 
         {/* Link 1 */}
-        <group rotation={[0, 0, jointPositions.joint1]}>
-          <mesh position={[0, 0, 0.2]}>
+        <group position={[0, 0, 0.267]} rotation={[0, 0, jointPositions.joint1]}>
+          <mesh position={[0, 0, 0.08]}>
             <cylinderGeometry args={[0.08, 0.08, 0.15]} />
             <meshStandardMaterial color="black" />
           </mesh>
 
           {/* Link 2 */}
           <group
-            rotation={[jointPositions.joint2, 0, 0]}
-            position={[0, 0, 0.35]}
+            position={[0, 0, 0]}
+            rotation={[-1.5708, 0, jointPositions.joint2]}
           >
-            <mesh position={[0.2, 0, 0]}>
-              <boxGeometry args={[0.4, 0.06, 0.06]} />
+            <mesh position={[0.02675, -0.14225, 0]}>
+              <boxGeometry args={[0.0535, 0.2845, 0.08]} />
               <meshStandardMaterial color="black" />
             </mesh>
 
             {/* Link 3 */}
             <group
-              rotation={[jointPositions.joint3, 0, 0]}
-              position={[0.4, 0, 0]}
+              position={[0.0535, -0.2845, 0]}
+              rotation={[0, 0, jointPositions.joint3]}
             >
-              <mesh position={[0.15, 0, 0]}>
-                <boxGeometry args={[0.3, 0.05, 0.05]} />
+              <mesh position={[0.03875, 0.17125, 0]}>
+                <boxGeometry args={[0.0775, 0.3425, 0.07]} />
                 <meshStandardMaterial color="black" />
               </mesh>
 
               {/* Link 4 */}
               <group
-                rotation={[0, 0, jointPositions.joint4]}
-                position={[0.3, 0, 0]}
+                position={[0.0775, 0.3425, 0]}
+                rotation={[-1.5708, 0, jointPositions.joint4]}
               >
-                <mesh position={[0, 0, 0.05]}>
-                  <cylinderGeometry args={[0.04, 0.04, 0.1]} />
+                <mesh position={[0, 0, 0.03]}>
+                  <cylinderGeometry args={[0.04, 0.04, 0.06]} />
                   <meshStandardMaterial color="black" />
                 </mesh>
 
                 {/* Link 5 */}
                 <group
-                  rotation={[jointPositions.joint5, 0, 0]}
-                  position={[0, 0, 0.15]}
+                  position={[0, 0, 0]}
+                  rotation={[1.5708, 0, jointPositions.joint5]}
                 >
-                  <mesh position={[0.05, 0, 0]}>
-                    <boxGeometry args={[0.1, 0.04, 0.04]} />
-                    <meshStandardMaterial color="black" />
-                  </mesh>
+                  <mesh position={[0.038, 0.0485, 0]}>
+                    <boxGeometry args={[0.076, 0.097, 0.06]} />
+                  <meshStandardMaterial color="black" />
+                </mesh>
 
                   {/* Link 6 (End Effector) */}
                   <group
-                    rotation={[0, 0, jointPositions.joint6]}
-                    position={[0.1, 0, 0]}
+                    position={[0.076, 0.097, 0]}
+                    rotation={[-1.5708, 0, jointPositions.joint6]}
                   >
-                    <mesh position={[0.05, 0, 0]}>
-                      <boxGeometry args={[0.1, 0.03, 0.03]} />
+                    <mesh position={[0, 0, 0.04]}>
+                      <boxGeometry args={[0.05, 0.05, 0.08]} />
                       <meshStandardMaterial color="black" />
                     </mesh>
                   </group>
