@@ -23,7 +23,7 @@ const RVizPanel = ({ ros }) => {
 
         {/* Camera View */}
         <div className="bg-white shadow-lg p-1 shrink-0 h-0 flex-1 flex flex-col overflow-hidden">
-          <CameraView ros={ros} topicName="/camera/camera/color/image_raw" />
+          <CameraView ros={ros} topicName="/camera/hand/color/image_raw" />
         </div>
       </div>
 
