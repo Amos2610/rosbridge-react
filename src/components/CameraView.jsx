@@ -3,7 +3,7 @@ import ROSLIB from "roslib";
 
 const CameraView = ({
   ros,
-  topicName = "/camera/camera/color/image_raw",
+  topicName = "/camera/hand/color/image_raw",
   overlayTopicName = "/object_detection/grounded_sam2/image",
   overlayDuration = 5000
 }) => {
