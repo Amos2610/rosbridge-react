@@ -20,17 +20,13 @@ const CameraView = ({
         setOverlayActive(true);
         setTimeout(() => setOverlayActive(false), overlayDuration);
       } else {
-        // If we are within the overlay duration, ignore the main camera feed
-        if (Date.now() - overlayTimeRef.current < overlayDuration) {
-          return;
-        }
+        if (Date.now() - overlayTimeRef.current < overlayDuration) return;
       }
 
       const canvas = canvasRef.current;
       if (!canvas || !message.data) return;
       const ctx = canvas.getContext("2d");
 
-      // Handle CompressedImage
       if (message.format !== undefined) {
         let format = "jpeg";
         if (message.format.includes("png")) format = "png";
@@ -48,73 +44,43 @@ const CameraView = ({
         return;
       }
 
-      // Handle Raw Image (sensor_msgs/Image)
       if (message.width === undefined || message.height === undefined) return;
       const width = message.width;
       const height = message.height;
 
-      // Update canvas size if needed
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
       }
 
-      // Extract bytes from base64 string or raw array
       let bytes;
       if (typeof message.data === "string") {
-        try {
-          const binaryString = window.atob(message.data);
-          const len = binaryString.length;
-          bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-        } catch (e) {
-          console.error("Base64 decode failed:", e);
-          return;
+        const binaryString = window.atob(message.data);
+        bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
         }
       } else if (Array.isArray(message.data)) {
-        // Some versions of rosbridge send uint8[] as JSON arrays
         bytes = new Uint8Array(message.data);
       } else {
-        console.warn("Unknown message.data format:", typeof message.data);
         return;
       }
 
-      // Create ImageData
       const imageData = ctx.createImageData(width, height);
       const data = imageData.data;
-
-      // Handle rgb8 or bgr8
       const isBgr = message.encoding === "bgr8";
 
       for (let i = 0, j = 0; i < bytes.length; i += 3, j += 4) {
-        data[j] = isBgr ? bytes[i + 2] : bytes[i];         // R
-        data[j + 1] = bytes[i + 1];                        // G
-        data[j + 2] = isBgr ? bytes[i] : bytes[i + 2];     // B
-        data[j + 3] = 255;                                 // Alpha
+        data[j] = isBgr ? bytes[i + 2] : bytes[i];
+        data[j + 1] = bytes[i + 1];
+        data[j + 2] = isBgr ? bytes[i] : bytes[i + 2];
+        data[j + 3] = 255;
       }
-
       ctx.putImageData(imageData, 0, 0);
     };
 
-    const mainTopic = new ROSLIB.Topic({
-      ros: ros,
-      name: topicName,
-      messageType: "sensor_msgs/msg/Image",
-    });
-
-    const overlayTopic = new ROSLIB.Topic({
-      ros: ros,
-      name: overlayTopicName,
-      messageType: "sensor_msgs/msg/Image",
-      qos: {
-        reliability: "reliable",
-        durability: "transient_local",
-        history: "keep_last",
-        depth: 1
-      }
-    });
+    const mainTopic = new ROSLIB.Topic({ ros, name: topicName, messageType: "sensor_msgs/msg/Image" });
+    const overlayTopic = new ROSLIB.Topic({ ros, name: overlayTopicName, messageType: "sensor_msgs/msg/Image" });
 
     mainTopic.subscribe((message) => processImage(message, false));
     overlayTopic.subscribe((message) => processImage(message, true));
@@ -126,21 +92,16 @@ const CameraView = ({
   }, [ros, topicName, overlayTopicName, overlayDuration]);
 
   return (
-    <div className="h-full flex flex-col relative">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-xl font-bold text-gray-800">Camera View</h3>
-        {overlayActive && (
-          <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
-            Detection Overlay Active
-          </span>
-        )}
-      </div>
-      <div className="flex-1 w-full overflow-hidden rounded-md bg-gray-200 flex items-center justify-center relative">
-        <canvas
-          ref={canvasRef}
-          className="max-w-full max-h-full object-contain"
-        />
-      </div>
+    <div className="h-full w-full flex items-center justify-center bg-gray-200 relative overflow-hidden">
+      {overlayActive && (
+        <span className="absolute top-2 right-2 z-20 bg-green-500 text-white px-2 py-1 rounded-full text-[10px] font-bold animate-pulse shadow-md">
+          Detection Overlay Active
+        </span>
+      )}
+      <canvas
+        ref={canvasRef}
+        className="max-w-full max-h-full object-contain"
+      />
     </div>
   );
 };
