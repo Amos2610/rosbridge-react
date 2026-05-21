@@ -26,7 +26,6 @@ function App() {
     <div className="h-screen w-screen flex bg-white overflow-hidden font-sans">
       <RosConnection
         rosUrl="ws://localhost:9090"
-        rosDomainId="89"
         setRos={setRos}
       />
 

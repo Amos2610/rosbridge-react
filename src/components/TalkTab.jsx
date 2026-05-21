@@ -8,6 +8,7 @@ const TalkTab = ({ ros }) => {
   const [currentBotMessage, setCurrentBotMessage] = useState(null);
   const [talkMode, setTalkMode] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
   // ROS Topics
@@ -123,6 +124,7 @@ const TalkTab = ({ ros }) => {
     // バックエンドからの音声認識ステータスを受信
     srStatusTopic.current.subscribe((message) => {
       setIsListening(message.data === "listening");
+      setIsProcessing(message.data === "processing");
     });
 
     // バックエンドからの音声認識トランスクリプトをチャットに表示
@@ -175,6 +177,14 @@ const TalkTab = ({ ros }) => {
       talkModeTopic.current.publish(new ROSLIB.Message({ data: nextTalkMode }));
     }
   };
+
+  useEffect(() => {
+    if (!talkMode || !isConnected) return;
+    const timer = setInterval(() => {
+      talkModeTopic.current?.publish(new ROSLIB.Message({ data: true }));
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [talkMode, isConnected]);
 
   // テキスト送信（バックエンドが音声認識をキャンセルして優先処理する）
   const handleSend = () => {
@@ -373,6 +383,11 @@ const TalkTab = ({ ros }) => {
               <>
                 <span className="inline-block w-2 h-2 bg-red-400 rounded-full" />
                 <span className="text-red-400">ミュート中</span>
+              </>
+            ) : isProcessing ? (
+              <>
+                <span className="inline-block w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                <span className="text-amber-500">思考中...</span>
               </>
             ) : isListening ? (
               <>
