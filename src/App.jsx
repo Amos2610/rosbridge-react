@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import ROSLIB from "roslib";
 import RosConnection from "./components/RosConnection";
 import RVizPanel from "./components/RVizPanel";
 import TalkTab from "./components/TalkTab";
@@ -10,6 +11,35 @@ function App() {
   const [ros, setRos] = useState(null);
   const [activeTab, setActiveTab] = useState("talk");
   const [activeRightTab, setActiveRightTab] = useState("rviz");
+  const [language, setLanguage] = useState("ja");
+  const languageTopic = useRef(null);
+
+  // ROS接続時に /ui_language トピックを初期化し、現在の言語を Publish
+  useEffect(() => {
+    if (!ros) {
+      languageTopic.current = null;
+      return;
+    }
+    languageTopic.current = new ROSLIB.Topic({
+      ros,
+      name: "/ui_language",
+      messageType: "std_msgs/String",
+    });
+    // 接続直後に現在の言語設定を送信
+    languageTopic.current.publish(
+      new ROSLIB.Message({ data: language })
+    );
+  }, [ros]);
+
+  const toggleLanguage = () => {
+    const nextLang = language === "ja" ? "en" : "ja";
+    setLanguage(nextLang);
+    if (languageTopic.current) {
+      languageTopic.current.publish(
+        new ROSLIB.Message({ data: nextLang })
+      );
+    }
+  };
 
   const leftTabs = [
     { id: "talk", label: "Talk", component: <TalkTab ros={ros} /> },
@@ -30,7 +60,7 @@ function App() {
       />
 
       <div className="w-1/2 flex flex-col border-r h-full overflow-hidden">
-        <div className="flex bg-white shrink-0 border-b">
+        <div className="flex bg-white shrink-0 border-b items-stretch">
           {leftTabs.map((tab) => (
             <button
               key={tab.id}
@@ -50,6 +80,17 @@ function App() {
               )}
             </button>
           ))}
+          {/* 言語切り替えボタン */}
+          <button
+            onClick={toggleLanguage}
+            title={language === "ja" ? "Switch to English" : "日本語に切り替え"}
+            className="w-20 flex items-center justify-center gap-1 bg-gray-50 hover:bg-gray-200 border-b-4 border-transparent transition-all duration-300 shrink-0"
+          >
+            <span className={`text-base transition-all duration-300 ${language === "en" ? "hue-rotate-180 opacity-80" : ""}`}>🌐</span>
+            <span className={`text-sm font-bold w-6 text-center transition-colors duration-300 ${language === "ja" ? "text-red-600" : "text-blue-600"}`}>
+              {language === "ja" ? "JA" : "EN"}
+            </span>
+          </button>
         </div>
         <div className="flex-1 relative overflow-hidden bg-gray-50">
           {leftTabs.map((tab) => (
