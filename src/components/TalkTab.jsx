@@ -5,9 +5,9 @@ const TalkTab = ({ ros }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-  const [currentBotMessage, setCurrentBotMessage] = useState(null);
   const [talkMode, setTalkMode] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
   // ROS Topics
@@ -23,120 +23,96 @@ const TalkTab = ({ ros }) => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
+  // バックエンドからの完結した文を新しい吹き出しとして追加する
+  const addBotMessage = (text) => {
+    if (!text || !text.trim()) return;
+    setMessages((prev) => [
+      ...prev,
+      {
+        type: "ai",
+        text: text.trim(),
+        timestamp: new Date().toLocaleTimeString("ja-JP", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        timestampMs: Date.now(),
+      },
+    ]);
+  };
+
   useEffect(() => {
     if (!ros) return;
 
     userInputTopic.current = new ROSLIB.Topic({
-      ros: ros,
+      ros,
       name: "/user_input",
       messageType: "std_msgs/String",
     });
 
     responseStreamTopic.current = new ROSLIB.Topic({
-      ros: ros,
+      ros,
       name: "/chatbot_response_stream",
       messageType: "std_msgs/String",
     });
 
     responseTopic.current = new ROSLIB.Topic({
-      ros: ros,
+      ros,
       name: "/chatbot_response",
       messageType: "std_msgs/String",
     });
 
     talkModeTopic.current = new ROSLIB.Topic({
-      ros: ros,
+      ros,
       name: "/talk_mode",
       messageType: "std_msgs/Bool",
     });
 
     talkModeMutedTopic.current = new ROSLIB.Topic({
-      ros: ros,
+      ros,
       name: "/talk_mode_muted",
       messageType: "std_msgs/Bool",
     });
 
     srStatusTopic.current = new ROSLIB.Topic({
-      ros: ros,
+      ros,
       name: "/speech_recognition_status",
       messageType: "std_msgs/String",
     });
 
     srTranscriptTopic.current = new ROSLIB.Topic({
-      ros: ros,
+      ros,
       name: "/speech_recognition_transcript",
       messageType: "std_msgs/String",
     });
 
-    const handleStreamChunk = (chunk) => {
-      setCurrentBotMessage((prev) => {
-        const now = Date.now();
-        if (!prev) {
-          return {
-            type: "ai",
-            text: chunk,
-            timestamp: new Date().toLocaleTimeString("ja-JP", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            timestampMs: now,
-            streaming: true,
-          };
-        } else {
-          return {
-            ...prev,
-            text: (prev.text || "") + chunk,
-            streaming: true,
-          };
-        }
-      });
-    };
-
-    const handleCompleteResponse = () => {
-      setCurrentBotMessage((prev) => {
-        if (prev && prev.streaming === true) {
-          setMessages((messages) => {
-            const alreadyExists = messages.some(
-              (msg) =>
-                msg.type === "ai" &&
-                msg.timestampMs === prev.timestampMs &&
-                msg.text === prev.text
-            );
-            if (!alreadyExists) {
-              return [...messages, { ...prev, streaming: false }];
-            }
-            return messages;
-          });
-        }
-        return null;
-      });
-    };
-
+    // パブリッシュごとに独立した吹き出しを作成する
     responseStreamTopic.current.subscribe((message) => {
-      handleStreamChunk(message.data);
+      addBotMessage(message.data);
     });
 
-    responseTopic.current.subscribe(() => {
-      handleCompleteResponse();
-    });
+    // /chatbot_response はレガシー互換で購読するが現状は無害
+    responseTopic.current.subscribe(() => {});
 
-    // バックエンドからの音声認識ステータスを受信
     srStatusTopic.current.subscribe((message) => {
       setIsListening(message.data === "listening");
+      setIsProcessing(message.data === "processing");
     });
 
-    // バックエンドからの音声認識トランスクリプトをチャットに表示
+    // 音声認識トランスクリプトをユーザー発話として表示
     srTranscriptTopic.current.subscribe((message) => {
       const transcript = message.data.trim();
       if (!transcript) return;
-      const timestamp = new Date().toLocaleTimeString("ja-JP", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const timestampMs = Date.now();
       setMessages((prev) => [
         ...prev,
-        { type: "user", text: transcript, timestamp, timestampMs },
+        {
+          type: "user",
+          text: transcript,
+          timestamp: new Date().toLocaleTimeString("ja-JP", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          timestampMs: Date.now(),
+        },
       ]);
     });
 
@@ -154,9 +130,7 @@ const TalkTab = ({ ros }) => {
   const handleToggleMute = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
-    if (talkModeMutedTopic.current) {
-      talkModeMutedTopic.current.publish(new ROSLIB.Message({ data: nextMuted }));
-    }
+    talkModeMutedTopic.current?.publish(new ROSLIB.Message({ data: nextMuted }));
   };
 
   const handleToggleTalkMode = () => {
@@ -166,17 +140,37 @@ const TalkTab = ({ ros }) => {
     if (!nextTalkMode) {
       setIsMuted(false);
       setIsListening(false);
-      // ミュート解除も通知
-      if (talkModeMutedTopic.current) {
-        talkModeMutedTopic.current.publish(new ROSLIB.Message({ data: false }));
-      }
+      talkModeMutedTopic.current?.publish(new ROSLIB.Message({ data: false }));
     }
-    if (talkModeTopic.current) {
-      talkModeTopic.current.publish(new ROSLIB.Message({ data: nextTalkMode }));
-    }
+    talkModeTopic.current?.publish(new ROSLIB.Message({ data: nextTalkMode }));
   };
 
-  // テキスト送信（バックエンドが音声認識をキャンセルして優先処理する）
+  // トークモード中は 2 秒ごとにキープアライブを送信
+  useEffect(() => {
+    if (!talkMode || !isConnected) return;
+    const timer = setInterval(() => {
+      talkModeTopic.current?.publish(new ROSLIB.Message({ data: true }));
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [talkMode, isConnected]);
+
+  const handleSendMessage = (text) => {
+    if (!text.trim() || !isConnected) return;
+    setMessages((prev) => [
+      ...prev,
+      {
+        type: "user",
+        text: text.trim(),
+        timestamp: new Date().toLocaleTimeString("ja-JP", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        timestampMs: Date.now(),
+      },
+    ]);
+    userInputTopic.current.publish(new ROSLIB.Message({ data: text.trim() }));
+  };
+
   const handleSend = () => {
     if (!inputText.trim() || !isConnected) return;
     handleSendMessage(inputText);
@@ -184,82 +178,6 @@ const TalkTab = ({ ros }) => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-  };
-
-  const handleSendMessage = (text) => {
-    const timestamp = new Date().toLocaleTimeString("ja-JP", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const timestampMs = Date.now();
-
-    setCurrentBotMessage((prev) => {
-      if (prev && prev.streaming === true) {
-        setMessages((messages) => {
-          const alreadyExists = messages.some(
-            (msg) =>
-              msg.type === "ai" &&
-              msg.timestampMs === prev.timestampMs &&
-              msg.text === prev.text
-          );
-          if (!alreadyExists) {
-            return [
-              ...messages,
-              { ...prev, streaming: false },
-              {
-                type: "user",
-                text: text,
-                timestamp: timestamp,
-                timestampMs: timestampMs,
-              },
-            ];
-          } else {
-            const userAlreadyExists = messages.some(
-              (msg) =>
-                msg.type === "user" &&
-                msg.timestampMs === timestampMs &&
-                msg.text === text
-            );
-            if (!userAlreadyExists) {
-              return [
-                ...messages,
-                {
-                  type: "user",
-                  text: text,
-                  timestamp: timestamp,
-                  timestampMs: timestampMs,
-                },
-              ];
-            }
-            return messages;
-          }
-        });
-      } else {
-        setMessages((messages) => {
-          const alreadyExists = messages.some(
-            (msg) =>
-              msg.type === "user" &&
-              msg.timestampMs === timestampMs &&
-              msg.text === text
-          );
-          if (!alreadyExists) {
-            return [
-              ...messages,
-              {
-                type: "user",
-                text: text,
-                timestamp: timestamp,
-                timestampMs: timestampMs,
-              },
-            ];
-          }
-          return messages;
-        });
-      }
-      return null;
-    });
-
-    userInputTopic.current.publish(new ROSLIB.Message({ data: text }));
   };
 
   const handleKeyPress = (e) => {
@@ -273,22 +191,16 @@ const TalkTab = ({ ros }) => {
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      const scrollHeight = textareaRef.current.scrollHeight;
-      const maxHeight = 120;
-      textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+      textareaRef.current.style.height = `${Math.min(
+        textareaRef.current.scrollHeight,
+        120
+      )}px`;
     }
   }, [inputText]);
 
-  const allMessages =
-    currentBotMessage && currentBotMessage.streaming === true
-      ? [...messages, currentBotMessage]
-      : messages;
-
-  const displayMessages = allMessages.sort((a, b) => {
-    const timeA = a.timestampMs || 0;
-    const timeB = b.timestampMs || 0;
-    return timeA - timeB;
-  });
+  const displayMessages = [...messages].sort(
+    (a, b) => (a.timestampMs || 0) - (b.timestampMs || 0)
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -311,7 +223,7 @@ const TalkTab = ({ ros }) => {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {displayMessages.map((msg, index) => (
           <div
-            key={index}
+            key={`${msg.timestampMs}-${index}`}
             className={`flex flex-col ${
               msg.type === "ai" ? "items-start" : "items-end"
             }`}
@@ -373,6 +285,11 @@ const TalkTab = ({ ros }) => {
               <>
                 <span className="inline-block w-2 h-2 bg-red-400 rounded-full" />
                 <span className="text-red-400">ミュート中</span>
+              </>
+            ) : isProcessing ? (
+              <>
+                <span className="inline-block w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                <span className="text-amber-500">思考中...</span>
               </>
             ) : isListening ? (
               <>
