@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/vite-with-qr.mjs dev",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "node scripts/vite-with-qr.mjs preview"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",
@@ -30,6 +30,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
+    "qrcode-terminal": "^0.12.0",
     "vite": "^7.1.7"
   }
 }
