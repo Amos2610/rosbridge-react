@@ -1,13 +1,10 @@
 import { useEffect } from "react";
 import ROSLIB from "roslib";
 
-const RosConnection = ({ rosUrl, rosDomainId, setRos }) => {
+const RosConnection = ({ rosUrl, setRos }) => {
   useEffect(() => {
     const ros = new ROSLIB.Ros({
       url: rosUrl,
-      options: {
-        ros_domain_id: rosDomainId,
-      },
     });
 
     ros.on("connection", () => {
@@ -42,7 +39,7 @@ const RosConnection = ({ rosUrl, rosDomainId, setRos }) => {
     return () => {
       ros.close();
     };
-  }, [rosUrl, rosDomainId, setRos]);
+  }, [rosUrl, setRos]);
 
   return null;
 };
