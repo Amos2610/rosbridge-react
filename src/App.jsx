@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import ROSLIB from "roslib";
 import RosConnection from "./components/RosConnection";
 import AccountTab from "./components/AccountTab";
 import CameraView from "./components/CameraView";
@@ -9,6 +8,7 @@ import LogTab from "./components/LogTab";
 import TalkTab from "./components/TalkTab";
 
 const LeftScreenPage = () => {
+  const rosbridgeUrl = import.meta.env.VITE_ROSBRIDGE_URL || "ws://localhost:9090";
   const [activeTab, setActiveTab] = useState("talk");
   const [ros, setRos] = useState(null);
   const [language, setLanguage] = useState("ja");
@@ -23,7 +23,7 @@ const LeftScreenPage = () => {
       return;
     }
 
-    languageTopic.current = new ROSLIB.Topic({
+    languageTopic.current = new window.ROSLIB.Topic({
       ros,
       name: "/ui_language",
       messageType: "std_msgs/String",
@@ -51,7 +51,7 @@ const LeftScreenPage = () => {
     if (!languageTopic.current) return;
 
     languageTopic.current.publish(
-      new ROSLIB.Message({ data: language })
+      new window.ROSLIB.Message({ data: language })
     );
   }, [ros, language]);
 
@@ -83,7 +83,7 @@ const LeftScreenPage = () => {
   return (
     <div className="h-screen w-screen bg-white overflow-hidden font-sans">
       <RosConnection
-        rosUrl="ws://localhost:9090"
+        rosUrl={rosbridgeUrl}
         setRos={setRos}
       />
 

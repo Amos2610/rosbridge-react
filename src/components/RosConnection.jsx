@@ -1,9 +1,8 @@
 import { useEffect } from "react";
-import ROSLIB from "roslib";
 
 const RosConnection = ({ rosUrl, setRos }) => {
   useEffect(() => {
-    const ros = new ROSLIB.Ros({
+    const ros = new window.ROSLIB.Ros({
       url: rosUrl,
     });
 

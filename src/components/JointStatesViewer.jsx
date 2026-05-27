@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import ROSLIB from "roslib";
 
 const JointStatesViewer = ({ ros }) => {
   const [jointStates, setJointStates] = useState({});
@@ -8,7 +7,7 @@ const JointStatesViewer = ({ ros }) => {
   useEffect(() => {
     if (!ros) return;
 
-    const jointStatesTopic = new ROSLIB.Topic({
+    const jointStatesTopic = new window.ROSLIB.Topic({
       ros: ros,
       name: "/joint_states",
       messageType: "sensor_msgs/JointState",
