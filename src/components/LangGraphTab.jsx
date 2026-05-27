@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import ROSLIB from "roslib";
 
 export default function LangGraphTab({ ros }) {
   // 実際に画面に表示されるアクティブなノード
@@ -26,7 +25,7 @@ export default function LangGraphTab({ ros }) {
 
   useEffect(() => {
     if (!ros) return;
-    const stateListener = new ROSLIB.Topic({
+    const stateListener = new window.ROSLIB.Topic({
       ros: ros,
       name: "/langgraph_current_state",
       messageType: "std_msgs/String",

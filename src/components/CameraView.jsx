@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import ROSLIB from "roslib";
 
 const CameraView = ({
   ros,
@@ -79,8 +78,8 @@ const CameraView = ({
       ctx.putImageData(imageData, 0, 0);
     };
 
-    const mainTopic = new ROSLIB.Topic({ ros, name: topicName, messageType: "sensor_msgs/msg/Image" });
-    const overlayTopic = new ROSLIB.Topic({ ros, name: overlayTopicName, messageType: "sensor_msgs/msg/Image" });
+    const mainTopic = new window.ROSLIB.Topic({ ros, name: topicName, messageType: "sensor_msgs/msg/Image" });
+    const overlayTopic = new window.ROSLIB.Topic({ ros, name: overlayTopicName, messageType: "sensor_msgs/msg/Image" });
 
     mainTopic.subscribe((message) => processImage(message, false));
     overlayTopic.subscribe((message) => processImage(message, true));

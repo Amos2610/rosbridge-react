@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import ROSLIB from "roslib";
 
 const LogTab = ({ ros }) => {
   const [jointStates, setJointStates] = useState({});
@@ -10,7 +9,7 @@ const LogTab = ({ ros }) => {
     if (!ros) return;
 
     // Joint States subscription
-    const jointStatesTopic = new ROSLIB.Topic({
+    const jointStatesTopic = new window.ROSLIB.Topic({
       ros: ros,
       name: "/joint_states",
       messageType: "sensor_msgs/JointState",

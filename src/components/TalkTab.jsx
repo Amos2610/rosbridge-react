@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import ROSLIB from "roslib";
 
 const TalkTab = ({ ros }) => {
   const [messages, setMessages] = useState([]);
@@ -43,43 +42,43 @@ const TalkTab = ({ ros }) => {
   useEffect(() => {
     if (!ros) return;
 
-    userInputTopic.current = new ROSLIB.Topic({
+    userInputTopic.current = new window.ROSLIB.Topic({
       ros,
       name: "/user_input",
       messageType: "std_msgs/String",
     });
 
-    responseStreamTopic.current = new ROSLIB.Topic({
+    responseStreamTopic.current = new window.ROSLIB.Topic({
       ros,
       name: "/chatbot_response_stream",
       messageType: "std_msgs/String",
     });
 
-    responseTopic.current = new ROSLIB.Topic({
+    responseTopic.current = new window.ROSLIB.Topic({
       ros,
       name: "/chatbot_response",
       messageType: "std_msgs/String",
     });
 
-    talkModeTopic.current = new ROSLIB.Topic({
+    talkModeTopic.current = new window.ROSLIB.Topic({
       ros,
       name: "/talk_mode",
       messageType: "std_msgs/Bool",
     });
 
-    talkModeMutedTopic.current = new ROSLIB.Topic({
+    talkModeMutedTopic.current = new window.ROSLIB.Topic({
       ros,
       name: "/talk_mode_muted",
       messageType: "std_msgs/Bool",
     });
 
-    srStatusTopic.current = new ROSLIB.Topic({
+    srStatusTopic.current = new window.ROSLIB.Topic({
       ros,
       name: "/speech_recognition_status",
       messageType: "std_msgs/String",
     });
 
-    srTranscriptTopic.current = new ROSLIB.Topic({
+    srTranscriptTopic.current = new window.ROSLIB.Topic({
       ros,
       name: "/speech_recognition_transcript",
       messageType: "std_msgs/String",
@@ -130,7 +129,7 @@ const TalkTab = ({ ros }) => {
   const handleToggleMute = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
-    talkModeMutedTopic.current?.publish(new ROSLIB.Message({ data: nextMuted }));
+    talkModeMutedTopic.current?.publish(new window.ROSLIB.Message({ data: nextMuted }));
   };
 
   const handleToggleTalkMode = () => {
@@ -140,16 +139,16 @@ const TalkTab = ({ ros }) => {
     if (!nextTalkMode) {
       setIsMuted(false);
       setIsListening(false);
-      talkModeMutedTopic.current?.publish(new ROSLIB.Message({ data: false }));
+      talkModeMutedTopic.current?.publish(new window.ROSLIB.Message({ data: false }));
     }
-    talkModeTopic.current?.publish(new ROSLIB.Message({ data: nextTalkMode }));
+    talkModeTopic.current?.publish(new window.ROSLIB.Message({ data: nextTalkMode }));
   };
 
   // トークモード中は 2 秒ごとにキープアライブを送信
   useEffect(() => {
     if (!talkMode || !isConnected) return;
     const timer = setInterval(() => {
-      talkModeTopic.current?.publish(new ROSLIB.Message({ data: true }));
+      talkModeTopic.current?.publish(new window.ROSLIB.Message({ data: true }));
     }, 2000);
     return () => clearInterval(timer);
   }, [talkMode, isConnected]);
@@ -168,7 +167,7 @@ const TalkTab = ({ ros }) => {
         timestampMs: Date.now(),
       },
     ]);
-    userInputTopic.current.publish(new ROSLIB.Message({ data: text.trim() }));
+    userInputTopic.current.publish(new window.ROSLIB.Message({ data: text.trim() }));
   };
 
   const handleSend = () => {
