@@ -13,8 +13,6 @@ const LeftScreenPage = () => {
   const [ros, setRos] = useState(null);
   const [language, setLanguage] = useState("ja");
   const languageTopic = useRef(null);
-  const userInputTopic = useRef(null);
-  const taskStopTopic = useRef(null);
 
   // ROS接続時に /ui_language トピックを初期化
   useEffect(() => {
@@ -28,21 +26,9 @@ const LeftScreenPage = () => {
       name: "/ui_language",
       messageType: "std_msgs/String",
     });
-    userInputTopic.current = new ROSLIB.Topic({
-      ros,
-      name: "/user_input",
-      messageType: "std_msgs/String",
-    });
-    taskStopTopic.current = new ROSLIB.Topic({
-      ros,
-      name: "/rag_task_stop",
-      messageType: "std_msgs/Bool",
-    });
 
     return () => {
       languageTopic.current = null;
-      userInputTopic.current = null;
-      taskStopTopic.current = null;
     };
   }, [ros]);
 
@@ -59,18 +45,6 @@ const LeftScreenPage = () => {
     setLanguage((currentLanguage) =>
       currentLanguage === "ja" ? "en" : "ja"
     );
-  };
-
-  const handlePermissionYes = () => {
-    userInputTopic.current?.publish(new ROSLIB.Message({ data: "yes" }));
-  };
-
-  const handlePermissionNo = () => {
-    userInputTopic.current?.publish(new ROSLIB.Message({ data: "no" }));
-  };
-
-  const handlePermissionStop = () => {
-    taskStopTopic.current?.publish(new ROSLIB.Message({ data: true }));
   };
 
   const leftTabs = [
@@ -149,12 +123,7 @@ const LeftScreenPage = () => {
           ))}
         </div>
 
-        <ExecutePermissionPanel
-          onYes={handlePermissionYes}
-          onNo={handlePermissionNo}
-          onStop={handlePermissionStop}
-          disabled={!ros}
-        />
+        <ExecutePermissionPanel />
       </div>
     </div>
   );
