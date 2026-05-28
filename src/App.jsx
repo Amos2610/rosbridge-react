@@ -7,10 +7,22 @@ import LogTab from "./components/LogTab";
 import TalkTab from "./components/TalkTab";
 
 const LeftScreenPage = () => {
-  const rosbridgeUrl = import.meta.env.VITE_ROSBRIDGE_URL || "ws://localhost:9090";
+  const browserHost = window.location.hostname;
+  const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const httpProtocol = window.location.protocol === "https:" ? "https" : "http";
+  const envRosbridgeUrl = import.meta.env.VITE_ROSBRIDGE_URL;
+  const isRemoteAccess =
+    browserHost !== "localhost" && browserHost !== "127.0.0.1";
+  const shouldIgnoreLocalhostEnv =
+    isRemoteAccess &&
+    typeof envRosbridgeUrl === "string" &&
+    envRosbridgeUrl.includes("localhost");
+  const rosbridgeUrl = shouldIgnoreLocalhostEnv
+    ? `${wsProtocol}://${browserHost}:9090`
+    : envRosbridgeUrl || `${wsProtocol}://${browserHost}:9090`;
   const rvizVncUrl =
     import.meta.env.VITE_RVIZ_VNC_URL ||
-    "http://localhost:6080/vnc.html?autoconnect=true&resize=scale&show_dot=true";
+    `${httpProtocol}://${browserHost}:6080/vnc.html?autoconnect=true&resize=scale&show_dot=true`;
   const [activeTab, setActiveTab] = useState("talk");
   const [ros, setRos] = useState(null);
   const [language, setLanguage] = useState("ja");
