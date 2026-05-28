@@ -78,7 +78,6 @@ const LeftScreenPage = () => {
   const leftTabs = [
     { id: "talk", label: "Talk", component: <TalkTab ros={ros} /> },
     { id: "log", label: "Log", component: <LogTab ros={ros} /> },
-    { id: "graph", label: "Agent Graph", component: <LangGraphTab ros={ros} /> },
   ];
 
   return (
@@ -89,7 +88,7 @@ const LeftScreenPage = () => {
       />
 
       <div className="w-full h-full overflow-hidden bg-white">
-        <div className="h-full overflow-hidden bg-gray-50 min-h-0 grid grid-cols-2 gap-2 p-2">
+        <div className="h-full overflow-hidden bg-gray-50 min-h-0 grid grid-cols-3 gap-2 p-2">
           <div className="min-h-0 bg-white rounded shadow-sm overflow-hidden flex flex-col">
             <div className="grid grid-cols-2 md:flex bg-white shrink-0 border-b items-stretch">
               {leftTabs.map((tab) => (
@@ -149,7 +148,11 @@ const LeftScreenPage = () => {
             />
           </div>
 
-          <div className="grid grid-rows-2 gap-2 min-h-0">
+          <div className="min-h-0 bg-white rounded shadow-sm overflow-hidden">
+            <LangGraphTab ros={ros} />
+          </div>
+
+          <div className="grid gap-2 min-h-0" style={{ gridTemplateRows: "1fr auto" }}>
             <div className="bg-white rounded shadow-sm overflow-hidden min-h-0">
               <iframe
                 src={rvizVncUrl}
@@ -161,14 +164,14 @@ const LeftScreenPage = () => {
 
             <div className="bg-white rounded shadow-sm overflow-hidden min-h-0">
               {ros ? (
-                <div className="h-full w-full grid grid-cols-3 gap-2 p-2">
-                  <div className="bg-white overflow-hidden shadow-sm rounded">
+                <div className="w-full grid grid-cols-3 gap-2 p-2">
+                  <div className="bg-white overflow-hidden shadow-sm rounded aspect-[4/3] max-h-[18vh]">
                     <CameraView ros={ros} topicName="/camera/hand_camera/color/image_raw" />
                   </div>
-                  <div className="bg-white overflow-hidden shadow-sm rounded">
+                  <div className="bg-white overflow-hidden shadow-sm rounded aspect-[4/3] max-h-[18vh]">
                     <CameraView ros={ros} topicName="/camera/left/color/image_raw" />
                   </div>
-                  <div className="bg-white overflow-hidden shadow-sm rounded">
+                  <div className="bg-white overflow-hidden shadow-sm rounded aspect-[4/3] max-h-[18vh]">
                     <CameraView ros={ros} topicName="/camera/right/color/image_raw" />
                   </div>
                 </div>
