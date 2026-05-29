@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 
 export default function LangGraphTab({ ros }) {
+  const FADE_MS = 3000;
   // 実際に画面に表示されるアクティブなノード
   const [displayNode, setDisplayNode] = useState("idle");
+  // 最後に取得した有効ステートを保持（idleで上書きしない）
+  const [latchedNode, setLatchedNode] = useState("idle");
 
   // 状態遷移時の「直前の状態」を安全に維持し、不要な再レンダーでのクリアを防ぐRef群
   const prevNodeRef = useRef("idle");
@@ -14,40 +17,32 @@ export default function LangGraphTab({ ros }) {
     currentNodeRef.current = displayNode;
   }
 
+  // 画面（右側パネル）が縦長かどうかを管理するステート
+  const [isPortrait, setIsPortrait] = useState(false);
+  const containerRef = useRef(null);
   // 届いた状態を一時的に溜めておくキュー
   const [nodeQueue, setNodeQueue] = useState([]);
   // 現在キューを処理中かどうかを管理するフラグ
   const isProcessing = useRef(false);
-
-  // 画面（右側パネル）が縦長かどうかを管理するステート
-  const [isPortrait, setIsPortrait] = useState(false);
-  const containerRef = useRef(null);
+  const [recentActiveAt, setRecentActiveAt] = useState({});
+  const [nowMs, setNowMs] = useState(Date.now());
 
   useEffect(() => {
     if (!ros) return;
     const stateListener = new window.ROSLIB.Topic({
-      ros: ros,
+      ros,
       name: "/langgraph_current_state",
       messageType: "std_msgs/String",
     });
+
     stateListener.subscribe((message) => {
-      setNodeQueue((prev) => [...prev, message.data]);
+      const next = (message?.data || "").trim();
+      if (!next) return;
+      setNodeQueue((prev) => [...prev, next]);
     });
+
     return () => stateListener.unsubscribe();
   }, [ros]);
-
-  useEffect(() => {
-    if (nodeQueue.length > 0 && !isProcessing.current) {
-      isProcessing.current = true;
-      const nextNode = nodeQueue[0];
-      setDisplayNode(nextNode);
-      // 各状態を最低1200ms表示
-      setTimeout(() => {
-        setNodeQueue((prev) => prev.slice(1));
-        isProcessing.current = false;
-      }, 1200);
-    }
-  }, [nodeQueue]);
 
   // コンテナのサイズを監視して、動的に縦長（Portrait）かを判定する
   useEffect(() => {
@@ -110,6 +105,25 @@ export default function LangGraphTab({ ros }) {
   const nodeWidth = 140;
   const nodeHeight = 42;
 
+  useEffect(() => {
+    if (nodeQueue.length > 0 && !isProcessing.current) {
+      isProcessing.current = true;
+      const nextNode = nodeQueue[0];
+      setDisplayNode(nextNode);
+      setLatchedNode(nextNode);
+      setRecentActiveAt((prev) => ({ ...prev, [nextNode]: Date.now() }));
+      setTimeout(() => {
+        setNodeQueue((prev) => prev.slice(1));
+        isProcessing.current = false;
+      }, 1000);
+    }
+  }, [nodeQueue]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 100);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="w-full h-full flex flex-col bg-gray-50 overflow-hidden">
 
@@ -121,12 +135,12 @@ export default function LangGraphTab({ ros }) {
         </div>
         <div className="flex items-center gap-2">
           <span className="relative flex h-2.5 w-2.5">
-            {displayNode !== "idle" && (
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${nodeQueue.length > 2 ? 'bg-orange-400' : 'bg-blue-400'}`}></span>
+            {latchedNode !== "idle" && (
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${nodeQueue.length > 2 ? "bg-orange-400" : "bg-blue-400"}`}></span>
             )}
-            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${displayNode === 'idle' ? 'bg-gray-400' : 'bg-blue-500'}`}></span>
+            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${latchedNode === 'idle' ? 'bg-gray-400' : 'bg-blue-500'}`}></span>
           </span>
-          <span className="text-xs font-semibold text-gray-600">{displayNode === "idle" ? "待機中" : "実行中"}</span>
+          <span className="text-xs font-semibold text-gray-600">{latchedNode === "idle" ? "待機中" : "実行中"}</span>
         </div>
       </div>
 
@@ -186,7 +200,17 @@ export default function LangGraphTab({ ros }) {
 
           {/* ノード（状態ボックス）のレンダリング */}
           {nodes.map((node) => {
-            const isActive = displayNode === node.id;
+            const isActive = latchedNode === node.id;
+            const elapsedMs = nowMs - (recentActiveAt[node.id] || 0);
+            const fadeProgress = Math.min(Math.max(elapsedMs / FADE_MS, 0), 1);
+            const isFading = !isActive && elapsedMs < FADE_MS;
+            const fadingStyle = isFading
+              ? {
+                backgroundColor: `rgba(219, 234, 254, ${0.18 * (1 - fadeProgress)})`,
+                borderColor: `rgba(59, 130, 246, ${0.55 * (1 - fadeProgress)})`,
+                color: `rgba(29, 78, 216, ${0.9 * (1 - fadeProgress)})`,
+              }
+              : undefined;
             return (
               <foreignObject
                 key={node.id}
@@ -199,6 +223,7 @@ export default function LangGraphTab({ ros }) {
                 <div
                   className={`w-full h-full flex items-center justify-center rounded-lg shadow-sm border-2 font-bold text-xs text-center px-2 leading-tight transition-all duration-800 ${isActive ? "bg-blue-50 border-blue-500 text-blue-700 shadow-md scale-105 z-10" : "bg-white border-gray-200 text-gray-600"
                     }`}
+                  style={fadingStyle}
                 >
                   {node.label}
                   {isActive && (

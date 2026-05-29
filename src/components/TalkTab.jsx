@@ -8,6 +8,9 @@ const TalkTab = ({ ros }) => {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [agentState, setAgentState] = useState("idle");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [isTemplateOpen, setIsTemplateOpen] = useState(false);
 
   // ROS Topics
   const userInputTopic = useRef(null);
@@ -17,6 +20,7 @@ const TalkTab = ({ ros }) => {
   const talkModeMutedTopic = useRef(null);
   const srStatusTopic = useRef(null);
   const srTranscriptTopic = useRef(null);
+  const langgraphStateTopic = useRef(null);
 
   // 自動スクロール用
   const messagesEndRef = useRef(null);
@@ -84,6 +88,12 @@ const TalkTab = ({ ros }) => {
       messageType: "std_msgs/String",
     });
 
+    langgraphStateTopic.current = new window.ROSLIB.Topic({
+      ros,
+      name: "/langgraph_current_state",
+      messageType: "std_msgs/String",
+    });
+
     // パブリッシュごとに独立した吹き出しを作成する
     responseStreamTopic.current.subscribe((message) => {
       addBotMessage(message.data);
@@ -115,6 +125,10 @@ const TalkTab = ({ ros }) => {
       ]);
     });
 
+    langgraphStateTopic.current.subscribe((message) => {
+      setAgentState((message.data || "idle").trim() || "idle");
+    });
+
     setIsConnected(true);
 
     return () => {
@@ -122,9 +136,83 @@ const TalkTab = ({ ros }) => {
       responseTopic.current?.unsubscribe();
       srStatusTopic.current?.unsubscribe();
       srTranscriptTopic.current?.unsubscribe();
+      langgraphStateTopic.current?.unsubscribe();
       setIsConnected(false);
     };
   }, [ros]);
+
+  const templateByState = {
+    idle: [
+      "ホームポジションに戻って",
+      "おはようございます",
+      "何ができる？",
+    ],
+    clarify_task: [
+      "目的は机の上の物体をつかんで移動することです。",
+      "このタスクで必要な前提条件を教えてください。",
+    ],
+    extract_task: [
+      "タスクを小さな手順に分解してください。",
+      "実行に必要な情報が足りているか確認してください。",
+    ],
+    detect_objects: [
+      "対象物を認識して候補を提示してください。",
+      "いま見えている物体を一覧化してください。",
+    ],
+    ground_task: [
+      "この対象で実行可能か判定してください。",
+      "対象の位置と向きを確認してください。",
+    ],
+    estimate_grasp: [
+      "安定してつかめる把持姿勢を提案してください。",
+      "失敗しにくい把持候補を優先してください。",
+    ],
+    assemble_skills: [
+      "必要な動作スキルを組み合わせてください。",
+      "安全に実行できるシーケンスを作成してください。",
+    ],
+    simulate_task: [
+      "実行前にシミュレーション結果を見せてください。",
+      "衝突リスクがないか確認してください。",
+    ],
+    publish_task: [
+      "この内容で実行してください。",
+      "実機に送る前に最終確認をお願いします。",
+    ],
+    monitor_execution: [
+      "現在の実行状況を報告してください。",
+      "異常があればすぐ停止してください。",
+    ],
+    explain_result: [
+      "実行結果を要約してください。",
+      "失敗した場合の原因と対策を教えてください。",
+    ],
+    cancel_task: [
+      "このタスクを中止してください。",
+      "安全に停止して待機状態に戻してください。",
+    ],
+    handle_chat_or_intro: [
+      "こんにちは。簡単に自己紹介してください。",
+      "雑談モードで短く会話しましょう。",
+    ],
+    handle_agent: [
+      "エージェントの現在の判断根拠を教えてください。",
+      "次の分岐候補を説明してください。",
+    ],
+    classify_intent: [
+      "この入力の意図を分類してください。",
+      "作業依頼として解釈できるか判定してください。",
+    ],
+  };
+
+  const templateOptions = templateByState[agentState] || templateByState.idle;
+
+  const handleTemplateSelect = (value) => {
+    setSelectedTemplate(value);
+    setIsTemplateOpen(false);
+    if (!value) return;
+    setInputText(value);
+  };
 
   const handleToggleMute = () => {
     const nextMuted = !isMuted;
@@ -240,13 +328,13 @@ const TalkTab = ({ ros }) => {
                 </div>
               )}
               <div
-                className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
+                className={`rounded-2xl px-4 py-3 shadow-sm ${
                   msg.type === "ai"
-                    ? "bg-linear-to-br from-amber-50 to-amber-100 text-gray-800 border border-amber-200"
-                    : "bg-linear-to-br from-blue-500 to-blue-600 text-white shadow-md"
+                    ? "max-w-[75%] bg-linear-to-br from-amber-50 to-amber-100 text-gray-800 border border-amber-200"
+                    : "max-w-[90%] bg-linear-to-br from-blue-500 to-blue-600 text-white shadow-md"
                 }`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                   {msg.text}
                 </p>
               </div>
@@ -304,6 +392,31 @@ const TalkTab = ({ ros }) => {
           </div>
         )}
         <div className="flex gap-2 items-end">
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => isConnected && setIsTemplateOpen((prev) => !prev)}
+              disabled={!isConnected}
+              className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              title={`現在のステート: ${agentState}`}
+            >
+              定型文
+            </button>
+            {isTemplateOpen && (
+              <div className="absolute bottom-full mb-2 left-0 w-72 max-w-[60vw] rounded-lg border border-gray-200 bg-white shadow-lg z-20 max-h-56 overflow-y-auto">
+                {templateOptions.map((template) => (
+                  <button
+                    key={template}
+                    type="button"
+                    onClick={() => handleTemplateSelect(template)}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                  >
+                    {template}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <textarea
             ref={textareaRef}
             value={inputText}

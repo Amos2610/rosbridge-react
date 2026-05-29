@@ -99,8 +99,8 @@ const LeftScreenPage = () => {
         setRos={setRos}
       />
 
-      <div className="w-full h-full overflow-hidden bg-white">
-        <div className="h-full overflow-hidden bg-gray-50 min-h-0 grid grid-cols-3 gap-2 p-2">
+      <div className="h-full overflow-hidden bg-white w-full">
+        <div className="h-full overflow-hidden bg-gray-50 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-2 p-2">
           <div className="min-h-0 bg-white rounded shadow-sm overflow-hidden flex flex-col">
             <div className="grid grid-cols-2 md:flex bg-white shrink-0 border-b items-stretch">
               {leftTabs.map((tab) => (
@@ -160,11 +160,11 @@ const LeftScreenPage = () => {
             />
           </div>
 
-          <div className="min-h-0 bg-white rounded shadow-sm overflow-hidden">
+          <div className="hidden md:block min-h-0 bg-white rounded shadow-sm overflow-hidden">
             <LangGraphTab ros={ros} />
           </div>
 
-          <div className="grid gap-2 min-h-0" style={{ gridTemplateRows: "1fr auto" }}>
+          <div className="hidden md:grid gap-2 min-h-0" style={{ gridTemplateRows: "1fr auto" }}>
             <div className="bg-white rounded shadow-sm overflow-hidden min-h-0">
               <iframe
                 src={rvizVncUrl}
