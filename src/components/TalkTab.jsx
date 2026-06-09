@@ -11,6 +11,7 @@ const TalkTab = ({ ros }) => {
   const [agentState, setAgentState] = useState("idle");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
+  const [systemStatus, setSystemStatus] = useState(null);
 
   // ROS Topics
   const userInputTopic = useRef(null);
@@ -21,6 +22,7 @@ const TalkTab = ({ ros }) => {
   const srStatusTopic = useRef(null);
   const srTranscriptTopic = useRef(null);
   const langgraphStateTopic = useRef(null);
+  const systemStatusTopic = useRef(null);
 
   // 自動スクロール用
   const messagesEndRef = useRef(null);
@@ -94,6 +96,12 @@ const TalkTab = ({ ros }) => {
       messageType: "std_msgs/String",
     });
 
+    systemStatusTopic.current = new window.ROSLIB.Topic({
+      ros,
+      name: "/system_status",
+      messageType: "std_msgs/String",
+    });
+
     // パブリッシュごとに独立した吹き出しを作成する
     responseStreamTopic.current.subscribe((message) => {
       addBotMessage(message.data);
@@ -129,6 +137,10 @@ const TalkTab = ({ ros }) => {
       setAgentState((message.data || "idle").trim() || "idle");
     });
 
+    systemStatusTopic.current.subscribe((message) => {
+      try { setSystemStatus(JSON.parse(message.data)); } catch {}
+    });
+
     setIsConnected(true);
 
     return () => {
@@ -137,7 +149,9 @@ const TalkTab = ({ ros }) => {
       srStatusTopic.current?.unsubscribe();
       srTranscriptTopic.current?.unsubscribe();
       langgraphStateTopic.current?.unsubscribe();
+      systemStatusTopic.current?.unsubscribe();
       setIsConnected(false);
+      setSystemStatus(null);
     };
   }, [ros]);
 
@@ -221,7 +235,7 @@ const TalkTab = ({ ros }) => {
   };
 
   const handleToggleTalkMode = () => {
-    if (!isConnected) return;
+    if (!isConnected || !isRagReady) return;
     const nextTalkMode = !talkMode;
     setTalkMode(nextTalkMode);
     if (!nextTalkMode) {
@@ -241,8 +255,10 @@ const TalkTab = ({ ros }) => {
     return () => clearInterval(timer);
   }, [talkMode, isConnected]);
 
+  const isRagReady = systemStatus?.phase === "ready";
+
   const handleSendMessage = (text) => {
-    if (!text.trim() || !isConnected) return;
+    if (!text.trim() || !isConnected || !isRagReady) return;
     setMessages((prev) => [
       ...prev,
       {
@@ -305,6 +321,36 @@ const TalkTab = ({ ros }) => {
           {isConnected ? "🟢 ROS接続中" : "🔴 ROS未接続"}
         </span>
       </div>
+
+      {/* 初期化ステータスパネル */}
+      {isConnected && !isRagReady && (
+        <div className="mx-4 mt-3 mb-1 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm">
+          <p className="font-semibold text-yellow-800 mb-1">システム初期化中</p>
+          <p className="text-yellow-600 text-xs mb-3 animate-pulse">
+            {systemStatus?.current_step ?? "起動中..."}
+          </p>
+          <ul className="space-y-1.5">
+            {(systemStatus?.steps ?? []).map((step) => (
+              <li key={step.id} className="flex items-center gap-2 text-gray-700">
+                {step.status === "done"    && <span className="text-green-500 text-base leading-none">✓</span>}
+                {step.status === "running" && <span className="animate-spin inline-block text-base leading-none">⏳</span>}
+                {step.status === "pending" && <span className="text-gray-300 text-base leading-none">○</span>}
+                <span className={step.status === "running" ? "font-medium" : "text-gray-500"}>
+                  {step.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {systemStatus?.capabilities && (
+            <div className="mt-3 pt-2 border-t border-yellow-200 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+              <span>音声認識: {systemStatus.capabilities.speech_recognition ? "✓" : "—"}</span>
+              <span>TTS: {systemStatus.capabilities.tts ? "✓" : "—"}</span>
+              <span>物体検出: {systemStatus.capabilities.object_detection ? "✓" : "—"}</span>
+              <span>把持推定: {systemStatus.capabilities.grasp_estimation ? "✓" : "—"}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* チャット履歴 */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -395,8 +441,8 @@ const TalkTab = ({ ros }) => {
           <div className="relative shrink-0">
             <button
               type="button"
-              onClick={() => isConnected && setIsTemplateOpen((prev) => !prev)}
-              disabled={!isConnected}
+              onClick={() => isConnected && isRagReady && setIsTemplateOpen((prev) => !prev)}
+              disabled={!isConnected || !isRagReady}
               className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               title={`現在のステート: ${agentState}`}
             >
@@ -422,10 +468,10 @@ const TalkTab = ({ ros }) => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="メッセージを入力... (Shift+Enterで改行)"
+            placeholder={isRagReady ? "メッセージを入力... (Shift+Enterで改行)" : "システム初期化中..."}
             className="flex-1 px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[44px] max-h-[120px] overflow-y-auto text-gray-500"
             rows={1}
-            disabled={!isConnected}
+            disabled={!isConnected || !isRagReady}
           />
           {talkMode && (
             <button
@@ -446,7 +492,7 @@ const TalkTab = ({ ros }) => {
           )}
           <button
             onClick={handleToggleTalkMode}
-            disabled={!isConnected}
+            disabled={!isConnected || !isRagReady}
             title={talkMode ? "トークモード終了" : "クリックして音声入力を開始"}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
               isListening
@@ -464,7 +510,7 @@ const TalkTab = ({ ros }) => {
           </button>
           <button
             onClick={handleSend}
-            disabled={!isConnected || !inputText.trim()}
+            disabled={!isConnected || !isRagReady || !inputText.trim()}
             className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors disabled:bg-gray-300 shrink-0"
           >
             →
