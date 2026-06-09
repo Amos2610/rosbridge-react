@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 const CameraView = ({
   ros,
   topicName = "/camera/hand/color/image_raw",
-  overlayTopicName = "/object_detection/grounded_sam2/image",
+  overlayTopicName = null,
   overlayDuration = 5000
 }) => {
   const canvasRef = useRef(null);
@@ -79,14 +79,17 @@ const CameraView = ({
     };
 
     const mainTopic = new window.ROSLIB.Topic({ ros, name: topicName, messageType: "sensor_msgs/msg/Image" });
-    const overlayTopic = new window.ROSLIB.Topic({ ros, name: overlayTopicName, messageType: "sensor_msgs/msg/Image" });
-
     mainTopic.subscribe((message) => processImage(message, false));
-    overlayTopic.subscribe((message) => processImage(message, true));
+
+    let overlayTopic = null;
+    if (overlayTopicName) {
+      overlayTopic = new window.ROSLIB.Topic({ ros, name: overlayTopicName, messageType: "sensor_msgs/msg/Image" });
+      overlayTopic.subscribe((message) => processImage(message, true));
+    }
 
     return () => {
       mainTopic.unsubscribe();
-      overlayTopic.unsubscribe();
+      overlayTopic?.unsubscribe();
     };
   }, [ros, topicName, overlayTopicName, overlayDuration]);
 

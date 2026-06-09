@@ -9,20 +9,17 @@ import TalkTab from "./components/TalkTab";
 const LeftScreenPage = () => {
   const browserHost = window.location.hostname;
   const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const httpProtocol = window.location.protocol === "https:" ? "https" : "http";
-  const envRosbridgeUrl = import.meta.env.VITE_ROSBRIDGE_URL;
-  const isRemoteAccess =
-    browserHost !== "localhost" && browserHost !== "127.0.0.1";
-  const shouldIgnoreLocalhostEnv =
-    isRemoteAccess &&
-    typeof envRosbridgeUrl === "string" &&
-    envRosbridgeUrl.includes("localhost");
-  const rosbridgeUrl = shouldIgnoreLocalhostEnv
-    ? `${wsProtocol}://${browserHost}:9090`
-    : envRosbridgeUrl || `${wsProtocol}://${browserHost}:9090`;
+
+  const robotHost = import.meta.env.VITE_ROBOT_HOST || browserHost;
+
+  const rosbridgeUrl =
+    import.meta.env.VITE_ROSBRIDGE_URL ||
+    `${wsProtocol}://${robotHost}:9090`;
+
   const rvizVncUrl =
     import.meta.env.VITE_RVIZ_VNC_URL ||
-    `${httpProtocol}://${browserHost}:6080/vnc.html?autoconnect=true&resize=scale&show_dot=true`;
+    `http://${robotHost}:6080/vnc.html?autoconnect=true&resize=scale&show_dot=true`;
+
   const [activeTab, setActiveTab] = useState("talk");
   const [ros, setRos] = useState(null);
   const [language, setLanguage] = useState("ja");
@@ -178,13 +175,13 @@ const LeftScreenPage = () => {
               {ros ? (
                 <div className="w-full grid grid-cols-3 gap-2 p-2">
                   <div className="bg-white overflow-hidden shadow-sm rounded aspect-[4/3] max-h-[18vh]">
-                    <CameraView ros={ros} topicName="/camera/hand_camera/color/image_raw" />
+                    <CameraView ros={ros} topicName="/camera/hand_camera/color/image_raw" overlayTopicName="/object_detection/grounded_sam2/image" />
                   </div>
                   <div className="bg-white overflow-hidden shadow-sm rounded aspect-[4/3] max-h-[18vh]">
-                    <CameraView ros={ros} topicName="/camera/left/color/image_raw" />
+                    <CameraView ros={ros} topicName="/camera/left_camera/color/image_raw" />
                   </div>
                   <div className="bg-white overflow-hidden shadow-sm rounded aspect-[4/3] max-h-[18vh]">
-                    <CameraView ros={ros} topicName="/camera/right/color/image_raw" />
+                    <CameraView ros={ros} topicName="/camera/right_camera/color/image_raw" />
                   </div>
                 </div>
               ) : (
