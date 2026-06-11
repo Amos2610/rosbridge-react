@@ -99,7 +99,7 @@ const LeftScreenPage = () => {
       <div className="h-full overflow-hidden bg-white w-full">
         <div className="h-full overflow-hidden bg-gray-50 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-2 p-2">
           <div className="min-h-0 bg-white rounded shadow-sm overflow-hidden flex flex-col">
-            <div className="grid grid-cols-2 md:flex bg-white shrink-0 border-b items-stretch">
+            <div className="grid grid-cols-3 md:flex bg-white shrink-0 border-b items-stretch h-[52px]">
               {leftTabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -114,24 +114,14 @@ const LeftScreenPage = () => {
                 </button>
               ))}
 
+              {/* 言語切り替えボタン（国旗のみ） */}
               <button
                 onClick={toggleLanguage}
                 title={language === "ja" ? "Switch to English" : "日本語に切り替え"}
-                className="w-full md:w-20 flex items-center justify-center gap-1 bg-gray-50 hover:bg-gray-200 border-b-4 border-transparent transition-all duration-300 shrink-0 py-2 md:py-0"
+                className="w-full md:w-14 flex items-center justify-center bg-gray-50 hover:bg-gray-200 border-b-4 border-transparent transition-all duration-300 shrink-0"
               >
-                <span
-                  className={`text-base transition-all duration-300 ${
-                    language === "en" ? "hue-rotate-180 opacity-80" : ""
-                  }`}
-                >
-                  🌐
-                </span>
-                <span
-                  className={`text-sm font-bold w-6 text-center transition-colors duration-300 ${
-                    language === "ja" ? "text-red-600" : "text-blue-600"
-                  }`}
-                >
-                  {language === "ja" ? "JA" : "EN"}
+                <span className="text-xl leading-none transition-transform duration-300 hover:scale-110">
+                  {language === "ja" ? "🇯🇵" : "🇺🇸"}
                 </span>
               </button>
             </div>
