@@ -128,7 +128,7 @@ export default function LangGraphTab({ ros }) {
     <div className="w-full h-full flex flex-col bg-gray-50 overflow-hidden">
 
       {/* ヘッダーエリア */}
-      <div className="p-3 border-b bg-white flex justify-between items-center shadow-sm z-10 shrink-0">
+      <div className="px-3 border-b bg-white flex justify-between items-center shadow-sm z-10 shrink-0 h-[52px]">
         <div>
           <h2 className="text-lg font-bold text-gray-800">エージェントの状態</h2>
           <p className="text-gray-500 text-xs">AIが今何を考えているかを表示しています</p>
