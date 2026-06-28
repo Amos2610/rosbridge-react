@@ -1,1 +1,79 @@
 @import "tailwindcss";
+
+html, body, #root {
+  height: 100%;
+}
+
+/* webOS 3-panel layout fix.
+   Activates only when JS detects webOS UA + wide landscape viewport (>=1024x600).
+   Normal Chrome and mobile are unaffected — enableWebOsWideFix stays false there. */
+
+.webos-wide-fix {
+  height: 100vh;   /* fallback (svh may be unsupported in webOS) */
+  height: 100svh;  /* overrides fallback in browsers that support svh */
+}
+
+.webos-wide-fix .webos-main-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.webos-wide-fix .webos-main-grid > .hidden.md\:block {
+  display: block !important;
+}
+
+.webos-wide-fix .webos-main-grid > .hidden.md\:grid {
+  display: grid !important;
+}
+
+/* webOS color fallback: Tailwind v4 defines all colors as oklch() CSS variables.
+   webOS browsers that don't support oklch() see transparent/black instead.
+   Redefining the variables with hex equivalents here causes all descendants
+   to inherit the fixed values via CSS custom property inheritance.
+   Chrome is unaffected — webos-wide-fix is never added there. */
+
+.webos-wide-fix {
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-gray-50:  #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+
+  --color-blue-50:  #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+
+  --color-amber-50:  #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-500: #f59e0b;
+
+  --color-yellow-50:  #fefce8;
+  --color-yellow-200: #fef08a;
+  --color-yellow-600: #ca8a04;
+  --color-yellow-800: #854d0e;
+
+  --color-orange-400: #fb923c;
+  --color-orange-600: #ea580c;
+}
