@@ -26,7 +26,6 @@ const LeftScreenPage = () => {
   const languageTopic = useRef(null);
   const userInputTopic = useRef(null);
   const taskStopTopic = useRef(null);
-  const [enableWebOsWideFix, setEnableWebOsWideFix] = useState(false);
 
   // ROS接続時に /ui_language トピックを初期化
   useEffect(() => {
@@ -67,19 +66,6 @@ const LeftScreenPage = () => {
     );
   }, [ros, language]);
 
-  useEffect(() => {
-    const check = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const ua = navigator.userAgent;
-      const isWebOs = /Web0S|webOS|LG\s?Browser|SmartTV|SMART-TV/i.test(ua);
-      setEnableWebOsWideFix(isWebOs && w >= 1024 && h >= 600 && w > h);
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
   const toggleLanguage = () => {
     setLanguage((currentLanguage) =>
       currentLanguage === "ja" ? "en" : "ja"
@@ -104,14 +90,14 @@ const LeftScreenPage = () => {
   ];
 
   return (
-    <div className={`h-[100svh] w-screen bg-white overflow-hidden font-sans${enableWebOsWideFix ? " webos-wide-fix" : ""}`}>
+    <div className="h-[100svh] w-screen bg-white overflow-hidden font-sans">
       <RosConnection
         rosUrl={rosbridgeUrl}
         setRos={setRos}
       />
 
       <div className="h-full overflow-hidden bg-white w-full">
-        <div className="h-full overflow-hidden bg-gray-50 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-2 p-2 webos-main-grid">
+        <div className="h-full overflow-hidden bg-gray-50 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-2 p-2">
           <div className="min-h-0 bg-white rounded shadow-sm overflow-hidden flex flex-col">
             <div className="grid grid-cols-3 md:flex bg-white shrink-0 border-b items-stretch h-[52px]">
               {leftTabs.map((tab) => (
